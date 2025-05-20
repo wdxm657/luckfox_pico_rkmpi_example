@@ -1,0 +1,234 @@
+/*****************************************************************************
+ * | Author      :   Luckfox team
+ * | Function    :
+ * | Info        :
+ *
+ *----------------
+ * | This version:   V1.0
+ * | Date        :   2024-04-07
+ * | Info        :   Basic version
+ *
+ ******************************************************************************/
+
+/*头文件包含: 包含了标准C库头文件、Rockchip平台专用的头文件、OpenCV库的头文件。*/
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <getopt.h>
+#include <pthread.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/poll.h>
+#include <time.h>
+#include <unistd.h>
+#include <vector>
+
+#include "rtsp_demo.h"
+#include "luckfox_mpi.h"
+
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
+int main(int argc, char *argv[])
+{
+    /*
+    全局变量定义:
+    s32Ret: 用于存储函数调用的返回值。
+    width 和 height: 视频帧的宽度和高度。
+    fps_text 和 fps: 用于显示帧率。
+    stFrame 和 h264_frame: 用于存储编码后的视频流数据和视频帧信息。
+    */
+    RK_S32 s32Ret = 0;
+
+    int sX, sY, eX, eY;
+    int width = 2304;
+    int height = 1296;
+
+    char fps_text[16];
+    float fps = 0;
+    memset(fps_text, 0, 16);
+
+    // h264_frame
+    VENC_STREAM_S stFrame;
+    stFrame.pstPack = (VENC_PACK_S *)malloc(sizeof(VENC_PACK_S));
+    VIDEO_FRAME_INFO_S h264_frame;
+    VIDEO_FRAME_INFO_S stVpssFrame;
+
+    /*
+    初始化ISP: SAMPLE_COMM_ISP_Init 和 SAMPLE_COMM_ISP_Run 用于初始化和运行图像信号处理器。
+    */
+    // rkaiq init
+    RK_BOOL multi_sensor = RK_FALSE;
+    const char *iq_dir = "/etc/iqfiles";
+    rk_aiq_working_mode_t hdr_mode = RK_AIQ_WORKING_MODE_NORMAL;
+    // hdr_mode = RK_AIQ_WORKING_MODE_ISP_HDR2;
+    SAMPLE_COMM_ISP_Init(0, hdr_mode, multi_sensor, iq_dir);
+    SAMPLE_COMM_ISP_Run(0);
+
+    /*
+    初始化MPI系统: RK_MPI_SYS_Init 初始化Rockchip的多媒体处理接口。
+    */
+    // rkmpi init
+    if (RK_MPI_SYS_Init() != RK_SUCCESS)
+    {
+        RK_LOGE("rk mpi sys init fail!");
+        return -1;
+    }
+
+    /*
+    RTSP会话初始化: 创建RTSP演示处理程序和会话，设置视频编码格式，并同步时间戳。
+    */
+    // rtsp init
+    rtsp_demo_handle g_rtsplive = NULL;
+    rtsp_session_handle g_rtsp_session;
+    g_rtsplive = create_rtsp_demo(554);
+    g_rtsp_session = rtsp_new_session(g_rtsplive, "/live/0");
+    rtsp_set_video(g_rtsp_session, RTSP_CODEC_ID_VIDEO_H264, NULL, 0);
+    rtsp_sync_video_ts(g_rtsp_session, rtsp_get_reltime(), rtsp_get_ntptime());
+
+    /*
+    视频输入设备初始化: vi_dev_init 和 vi_chn_init 初始化视频输入设备和通道。
+    */
+    // vi init
+    vi_dev_init();
+    vi_chn_init(0, width, height);
+
+    /*
+    VPSS初始化: vpss_init 初始化视频处理子系统。
+    */
+    // vpss init
+    vpss_init(0, width, height);
+
+    /*
+    绑定VI到VPSS: 使用RK_MPI_SYS_Bind将视频输入绑定到视频处理子系统。
+    */
+    // bind vi to vpss
+    MPP_CHN_S stSrcChn, stvpssChn;
+    stSrcChn.enModId = RK_ID_VI;
+    stSrcChn.s32DevId = 0;
+    stSrcChn.s32ChnId = 0;
+
+    stvpssChn.enModId = RK_ID_VPSS;
+    stvpssChn.s32DevId = 0;
+    stvpssChn.s32ChnId = 0;
+    printf("====RK_MPI_SYS_Bind vi0 to vpss0====\n");
+    s32Ret = RK_MPI_SYS_Bind(&stSrcChn, &stvpssChn);
+    if (s32Ret != RK_SUCCESS)
+    {
+        RK_LOGE("bind 0 ch venc failed");
+        return -1;
+    }
+
+    /*
+    视频编码器初始化: venc_init 初始化视频编码器，设置编码参数。
+    */
+    // venc init
+    RK_CODEC_ID_E enCodecType = RK_VIDEO_ID_AVC;
+    venc_init(0, width, height, enCodecType);
+
+    while (1)
+    {
+
+        /*
+        获取VPSS帧：从VPSS中获取一个视频帧。0,0指定了组和通道的ID，&stVpssFrame是存储获取到帧的变量，-1是超时时间，表示无限等待直到获取帧。
+        */
+        // get vpss frame
+        s32Ret = RK_MPI_VPSS_GetChnFrame(0, 0, &stVpssFrame, -1);
+
+        /*
+        处理和显示帧：将获取到的视频帧的内存块地址转换为虚拟地址，然后使用OpenCV创建一个Mat对象，用于处理和显示。这里，将帧率信息显示在帧上，并更新帧的内容（例如，将处理后的图像数据复制回帧的内存空间）。
+        */
+        if (s32Ret == RK_SUCCESS)
+        {
+            void *data = RK_MPI_MB_Handle2VirAddr(stVpssFrame.stVFrame.pMbBlk);
+
+            cv::Mat frame(height, width, CV_8UC3, data);
+            sprintf(fps_text, "fps = %.2f", fps);
+            cv::putText(frame, fps_text,
+                        cv::Point(40, 40),
+                        cv::FONT_HERSHEY_SIMPLEX, 1,
+                        cv::Scalar(0, 255, 0), 2);
+            memcpy(data, frame.data, width * height * 3);
+        }
+
+        /*
+        编码H264视频帧：将处理后的帧发送给视频编码器进行编码。
+        */
+        // send stream
+        // encode H264
+        RK_MPI_VENC_SendFrame(0, &stVpssFrame, -1);
+
+        /*
+        获取编码后的视频流：从视频编码器获取编码后的视频流
+        */
+        // rtsp
+        s32Ret = RK_MPI_VENC_GetStream(0, &stFrame, -1);
+
+        /*
+        RTSP传输：如果已经初始化了RTSP会话，将编码后的视频流通过RTSP传输出去。
+        */
+        if (s32Ret == RK_SUCCESS)
+        {
+            if (g_rtsplive && g_rtsp_session)
+            {
+                // printf("len = %d PTS = %d \n",stFrame.pstPack->u32Len, stFrame.pstPack->u64PTS);
+                void *pData = RK_MPI_MB_Handle2VirAddr(stFrame.pstPack->pMbBlk);
+                rtsp_tx_video(g_rtsp_session, (uint8_t *)pData, stFrame.pstPack->u32Len,
+                              stFrame.pstPack->u64PTS);
+                rtsp_do_event(g_rtsplive);
+            }
+            /*
+            计算帧率：计算当前的帧率，TEST_COMM_GetNowUs 用于获取当前时间戳，然后根据前后帧的时间差来计算。
+            */
+            RK_U64 nowUs = TEST_COMM_GetNowUs();
+            fps = (float)1000000 / (float)(nowUs - stVpssFrame.stVFrame.u64PTS);
+        }
+
+        /*
+        释放资源：释放VPSS帧和编码流占用的资源，这是非常重要的，以避免内存泄漏。
+        */
+        // release frame
+        s32Ret = RK_MPI_VPSS_ReleaseChnFrame(0, 0, &stVpssFrame);
+        if (s32Ret != RK_SUCCESS)
+        {
+            RK_LOGE("RK_MPI_VI_ReleaseChnFrame fail %x", s32Ret);
+        }
+        s32Ret = RK_MPI_VENC_ReleaseStream(0, &stFrame);
+        if (s32Ret != RK_SUCCESS)
+        {
+            RK_LOGE("RK_MPI_VENC_ReleaseStream fail %x", s32Ret);
+        }
+    }
+
+    /*
+    清理阶段:
+    解除VI和VPSS的绑定。
+    停止并销毁VPSS组，停止ISP，停止编码器接收帧，销毁编码器通道。
+    释放分配的内存，退出MPI系统。
+    */
+    RK_MPI_SYS_UnBind(&stSrcChn, &stvpssChn);
+
+    RK_MPI_VI_DisableChn(0, 0);
+    RK_MPI_VI_DisableDev(0);
+
+    RK_MPI_VPSS_StopGrp(0);
+    RK_MPI_VPSS_DestroyGrp(0);
+
+    SAMPLE_COMM_ISP_Stop(0);
+
+    RK_MPI_VENC_StopRecvFrame(0);
+    RK_MPI_VENC_DestroyChn(0);
+
+    free(stFrame.pstPack);
+
+    if (g_rtsplive)
+        rtsp_del_demo(g_rtsplive);
+
+    RK_MPI_SYS_Exit();
+
+    return 0;
+}

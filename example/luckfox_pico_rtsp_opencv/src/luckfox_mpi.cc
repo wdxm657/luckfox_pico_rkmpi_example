@@ -127,3 +127,49 @@ int venc_init(int chnId, int width, int height, RK_CODEC_ID_E enType) {
 
 	return 0;
 }
+
+
+int vpss_init(int VpssChn, int width, int height) {
+	printf("%s\n",__func__);
+	int s32Ret;
+	VPSS_CHN_ATTR_S stVpssChnAttr;
+	VPSS_GRP_ATTR_S stGrpVpssAttr;
+
+	int s32Grp = 0;
+
+	stGrpVpssAttr.u32MaxW = 4096;
+	stGrpVpssAttr.u32MaxH = 4096;
+	stGrpVpssAttr.enPixelFormat = RK_FMT_YUV420SP;
+	stGrpVpssAttr.stFrameRate.s32SrcFrameRate = -1;
+	stGrpVpssAttr.stFrameRate.s32DstFrameRate = -1;
+	stGrpVpssAttr.enCompressMode = COMPRESS_MODE_NONE;
+
+	stVpssChnAttr.enChnMode = VPSS_CHN_MODE_USER;
+	stVpssChnAttr.enDynamicRange = DYNAMIC_RANGE_SDR8;
+	stVpssChnAttr.enPixelFormat = RK_FMT_RGB888;
+	stVpssChnAttr.stFrameRate.s32SrcFrameRate = -1;
+	stVpssChnAttr.stFrameRate.s32DstFrameRate = -1;
+	stVpssChnAttr.u32Width = width;
+	stVpssChnAttr.u32Height = height;
+	stVpssChnAttr.enCompressMode = COMPRESS_MODE_NONE;
+
+	s32Ret = RK_MPI_VPSS_CreateGrp(s32Grp, &stGrpVpssAttr);
+	if (s32Ret != RK_SUCCESS) {
+		return s32Ret;
+	}
+
+	s32Ret = RK_MPI_VPSS_SetChnAttr(s32Grp, VpssChn, &stVpssChnAttr);
+	if (s32Ret != RK_SUCCESS) {
+		return s32Ret;
+	}
+	s32Ret = RK_MPI_VPSS_EnableChn(s32Grp, VpssChn);
+	if (s32Ret != RK_SUCCESS) {
+		return s32Ret;
+	}
+
+	s32Ret = RK_MPI_VPSS_StartGrp(s32Grp);
+	if (s32Ret != RK_SUCCESS) {
+		return s32Ret;
+	}
+	return s32Ret;
+}

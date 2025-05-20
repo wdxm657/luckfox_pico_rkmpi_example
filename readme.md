@@ -40,11 +40,11 @@ https://bbs.eeworld.com.cn/thread-1271012-1-1.html
     ```
 + 将生成的部署文件夹完整上传到 Luckfox Pico 上 (可使用adb ssh等方式) ，板端进入文件夹运行
     ``` bash
-    scp build/luckfox_pico_rtsp_opencv root@192.168.30.88:/root
-    scp build/luckfox_pico_rtsp_opencv_capture root@192.168.30.88:/root
-    scp build/luckfox_pico_rtsp_retinaface root@192.168.30.88:/root
-    scp build/luckfox_pico_rtsp_retinaface_osd root@192.168.30.88:/root
-    scp build/luckfox_pico_rtsp_yolov5  root@192.168.30.88:/root
+    sudo scp build/luckfox_pico_rtsp_opencv root@192.168.30.88:/root
+    sudo scp build/luckfox_pico_rtsp_opencv_capture root@192.168.30.88:/root
+    sudo scp build/luckfox_pico_rtsp_retinaface root@192.168.30.88:/root
+    sudo scp build/luckfox_pico_rtsp_retinaface_osd root@192.168.30.88:/root
+    sudo scp build/luckfox_pico_rtsp_yolov5  root@192.168.30.88:/root
     ```
     ```
     # 在 Luckfox Pico 板端运行，<Demo Target> 是部署文件夹中的可执行程序
