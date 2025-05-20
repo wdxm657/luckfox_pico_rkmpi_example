@@ -45,6 +45,7 @@ https://bbs.eeworld.com.cn/thread-1271012-1-1.html
     sudo scp build/luckfox_pico_rtsp_retinaface root@192.168.30.88:/root
     sudo scp build/luckfox_pico_rtsp_retinaface_osd root@192.168.30.88:/root
     sudo scp build/luckfox_pico_rtsp_yolov5  root@192.168.30.88:/root
+    sudo scp build/luckfox_pico_rtsp_yolov8  root@192.168.30.88:/root
     ```
     ```
     # 在 Luckfox Pico 板端运行，<Demo Target> 是部署文件夹中的可执行程序

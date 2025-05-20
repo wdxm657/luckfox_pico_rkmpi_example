@@ -38,7 +38,9 @@ options=("luckfox_pico_rtsp_opencv"
 	"luckfox_pico_rtsp_opencv_capture"
 	"luckfox_pico_rtsp_retinaface"
 	"luckfox_pico_rtsp_retinaface_osd"
-	"luckfox_pico_rtsp_yolov5")
+	"luckfox_pico_rtsp_yolov5"
+	"luckfox_pico_rtsp_yolov8"
+	)
 
 PS3="Enter your choice [1-${#options[@]}]: "
 
@@ -56,6 +58,8 @@ select opt in "${options[@]}"; do
 			cd ${ROOT_PWD}/build
 			cmake .. -DEXAMPLE_DIR="$src_dir" -DEXAMPLE_NAME="$opt" -DLIBC_TYPE="$libc_type"
 			make install
+			sudo scp ${ROOT_PWD}/build/$opt  root@192.168.30.88:/root
+			sudo scp -r ${ROOT_PWD}/example/$opt/model  root@192.168.30.88:/root
 		else
 			echo "错误：目录 $src_dir 不存在！"
 			echo "Error: Directory $src_dir does not exist!"
