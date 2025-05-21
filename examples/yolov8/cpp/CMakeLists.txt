@@ -26,6 +26,15 @@ endif()
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../3rdparty/ 3rdparty.out)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../utils/ utils.out)
 
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/uclibc)
+
+#Opencv 4
+set(OpenCV_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/uclibc/lib/cmake/opencv4")
+find_package(OpenCV REQUIRED)
+#Thread
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
 
 file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
@@ -33,22 +42,38 @@ file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
 add_executable(${PROJECT_NAME}
     main.cc
     postprocess.cc
+    luckfox_mpi.cc
     ${rknpu_yolov8_file}
 )
 
-target_link_libraries(${PROJECT_NAME}
-    imageutils
-    fileutils
-    imagedrawing    
-    ${LIBRKNNRT}
-    dl
-)
 
-if (CMAKE_SYSTEM_NAME STREQUAL "Android")
-    target_link_libraries(${PROJECT_NAME}
-    log
-)
-endif()
+add_compile_options(-g -Wall
+                    -DISP_HW_V30 -DRKPLATFORM=ON -DARCH64=OFF
+                    -DROCKIVA -DUAPI2
+                    -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 
+                    )
+
+set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Wl,-rpath-link,${CMAKE_CURRENT_SOURCE_DIR}/../../../lib:/usr/lib")
+
+target_link_libraries(${PROJECT_NAME}
+                    ${OpenCV_LIBS}
+                    rknnmrt
+                    Threads::Threads
+                    rockiva
+                    sample_comm
+                    rockit
+                    rockchip_mpp
+                    rkaiq
+                    pthread
+                    rtsp
+                    rga
+
+                    imageutils
+                    fileutils
+                    imagedrawing    
+                    ${LIBRKNNRT}
+                    dl
+                    )
 
 message(STATUS "!!!!!!!!!!!CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -57,9 +82,26 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(${PROJECT_NAME} Threads::Threads)
 endif()
 
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${LIBRKNNRT_INCLUDES}
+target_include_directories(${PROJECT_NAME} PRIVATE                        
+                            ${OpenCV_INCLUDE_DIRS}
+                            ${CMAKE_CURRENT_SOURCE_DIR}
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../utils
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../common 
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../common/isp3.x   
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../include
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/rknn
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/librga 
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/rkaiq
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/rkaiq/uAPI2
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/rkaiq/common
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/rkaiq/xcore
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/rkaiq/algos
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/rkaiq/iq_parser
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/rkaiq/iq_parser_v2
+                            ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/rkaiq/smartIr
+
+                            # ${CMAKE_CURRENT_SOURCE_DIR}
+                            ${LIBRKNNRT_INCLUDES}
 )
 
 

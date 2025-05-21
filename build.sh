@@ -58,8 +58,8 @@ select opt in "${options[@]}"; do
 			cd ${ROOT_PWD}/build
 			cmake .. -DEXAMPLE_DIR="$src_dir" -DEXAMPLE_NAME="$opt" -DLIBC_TYPE="$libc_type"
 			make install
-			sudo scp ${ROOT_PWD}/build/$opt  root@192.168.30.88:/root
-			sudo scp -r ${ROOT_PWD}/example/$opt/model  root@192.168.30.88:/root
+			sudo scp ${ROOT_PWD}/build/$opt  root@192.168.40.127:/root
+			sudo scp -r ${ROOT_PWD}/example/$opt/model  root@192.168.40.127:/root
 		else
 			echo "错误：目录 $src_dir 不存在！"
 			echo "Error: Directory $src_dir does not exist!"
