@@ -46,8 +46,8 @@
 #include "dma_alloc.hpp"
 #endif
 
-#define DISP_WIDTH 720
-#define DISP_HEIGHT 480
+#define DISP_WIDTH 1280
+#define DISP_HEIGHT 720
 int width = DISP_WIDTH;
 int height = DISP_HEIGHT;
 // model size
@@ -82,7 +82,7 @@ static volatile int run = 1;
 static void sig_proc(int signo)
 {
     printf("received signo %d\n", signo);
-    run = 0;
+    run = 1;
 }
 void mapCoordinates(int *x, int *y)
 {
@@ -98,8 +98,8 @@ void mapCoordinates(int *x, int *y)
 -------------------------------------------*/
 int main(int argc, char **argv)
 {
-    signal(SIGTERM, sig_proc);
-    signal(SIGINT, sig_proc);
+    // signal(SIGTERM, sig_proc);
+    // signal(SIGINT, sig_proc);
     system("RkLunch-stop.sh");
     RK_S32 s32Ret = 0;
     int sX, sY, eX, eY;

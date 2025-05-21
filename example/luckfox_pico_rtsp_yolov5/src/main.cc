@@ -21,8 +21,8 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
-#define DISP_WIDTH  720
-#define DISP_HEIGHT 480
+#define DISP_WIDTH  1280
+#define DISP_HEIGHT 720
 
 // disp size
 int width    = DISP_WIDTH;
@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
 	venc_init(0, width, height, enCodecType);
 
 	printf("venc init success\n");	
-	
+	float fps = 0.0;
   	while(1)
 	{	
 		// get vi frame
@@ -212,7 +212,9 @@ int main(int argc, char *argv[]) {
 				rtsp_do_event(g_rtsplive);
 			}
 		}
-
+		RK_U64 nowUs = TEST_COMM_GetNowUs();
+		fps = (float)1000000 / (float)(nowUs - h264_frame.stVFrame.u64PTS);
+		printf("fps = %.2f\n", fps);
 		// release frame 
 		s32Ret = RK_MPI_VI_ReleaseChnFrame(0, 0, &stViFrame);
 		if (s32Ret != RK_SUCCESS) {
