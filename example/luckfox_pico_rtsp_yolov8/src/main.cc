@@ -146,7 +146,9 @@ int main(int argc, char *argv[])
 	venc_init(0, width, height, enCodecType);
 
 	printf("venc init success\n");
-
+	char fps_text[16];
+	float fps = 0;
+	memset(fps_text, 0, 16);
 	while (1)
 	{
 		// get vi frame
@@ -166,36 +168,39 @@ int main(int argc, char *argv[])
 			// letterbox
 			cv::Mat letterboxImage = letterbox(frame);
 			memcpy(rknn_app_ctx.input_mems[0]->virt_addr, letterboxImage.data, model_width * model_height * 3);
-			printf("inference_yolov8_model 1\n");
 			inference_yolov8_model(&rknn_app_ctx, &od_results);
-			printf("inference_yolov8_model 2\n");
 
-			for (int i = 0; i < od_results.count; i++)
-			{
-				if (od_results.count >= 1)
-				{
-					object_detect_result *det_result = &(od_results.results[i]);
+			// for (int i = 0; i < od_results.count; i++)
+			// {
+			// 	if (od_results.count >= 1)
+			// 	{
+			// 		object_detect_result *det_result = &(od_results.results[i]);
 
-					sX = (int)(det_result->box.left);
-					sY = (int)(det_result->box.top);
-					eX = (int)(det_result->box.right);
-					eY = (int)(det_result->box.bottom);
-					mapCoordinates(&sX, &sY);
-					mapCoordinates(&eX, &eY);
+			// 		sX = (int)(det_result->box.left);
+			// 		sY = (int)(det_result->box.top);
+			// 		eX = (int)(det_result->box.right);
+			// 		eY = (int)(det_result->box.bottom);
+			// 		mapCoordinates(&sX, &sY);
+			// 		mapCoordinates(&eX, &eY);
 
-					printf("%s @ (%d %d %d %d) %.3f\n", coco_cls_to_name(det_result->cls_id),
-						   sX, sY, eX, eY, det_result->prop);
+			// 		printf("%s @ (%d %d %d %d) %.3f\n", coco_cls_to_name(det_result->cls_id),
+			// 			   sX, sY, eX, eY, det_result->prop);
 
-					cv::rectangle(frame, cv::Point(sX, sY),
-								  cv::Point(eX, eY),
-								  cv::Scalar(0, 255, 0), 3);
-					sprintf(text, "%s %.1f%%", coco_cls_to_name(det_result->cls_id), det_result->prop * 100);
-					cv::putText(frame, text, cv::Point(sX, sY - 8),
-								cv::FONT_HERSHEY_SIMPLEX, 1,
-								cv::Scalar(0, 255, 0), 2);
-				}
-			}
+			// 		cv::rectangle(frame, cv::Point(sX, sY),
+			// 					  cv::Point(eX, eY),
+			// 					  cv::Scalar(0, 255, 0), 3);
+			// 		sprintf(text, "%s %.1f%%", coco_cls_to_name(det_result->cls_id), det_result->prop * 100);
+			// 		cv::putText(frame, text, cv::Point(sX, sY - 8),
+			// 					cv::FONT_HERSHEY_SIMPLEX, 1,
+			// 					cv::Scalar(0, 255, 0), 2);
+			// 	}
+			// }
 		}
+		sprintf(fps_text, "fps = %.2f", fps);
+		cv::putText(frame, fps_text,
+					cv::Point(40, 40),
+					cv::FONT_HERSHEY_SIMPLEX, 1,
+					cv::Scalar(0, 255, 0), 2);
 		memcpy(data, frame.data, width * height * 3);
 
 		// encode H264
@@ -212,6 +217,8 @@ int main(int argc, char *argv[])
 				rtsp_tx_video(g_rtsp_session, (uint8_t *)pData, stFrame.pstPack->u32Len,
 							  stFrame.pstPack->u64PTS);
 				rtsp_do_event(g_rtsplive);
+				RK_U64 nowUs = TEST_COMM_GetNowUs();
+				fps = (float)1000000 / (float)(nowUs - h264_frame.stVFrame.u64PTS);
 			}
 		}
 

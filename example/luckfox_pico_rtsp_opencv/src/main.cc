@@ -32,8 +32,8 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
-#define DISP_WIDTH 1920
-#define DISP_HEIGHT 1080
+#define DISP_WIDTH 1280
+#define DISP_HEIGHT 720
 
 int main(int argc, char *argv[])
 {

@@ -64,7 +64,7 @@ int init_yolov8_model(const char *model_path, rknn_app_context_t *app_ctx)
     for (int i = 0; i < io_num.n_input; i++)
     {
         input_attrs[i].index = i;
-        ret = rknn_query(ctx, RKNN_QUERY_INPUT_ATTR, &(input_attrs[i]), sizeof(rknn_tensor_attr));
+        ret = rknn_query(ctx, RKNN_QUERY_NATIVE_INPUT_ATTR, &(input_attrs[i]), sizeof(rknn_tensor_attr));
         if (ret != RKNN_SUCC)
         {
             printf("rknn_query fail! ret=%d\n", ret);
@@ -80,7 +80,7 @@ int init_yolov8_model(const char *model_path, rknn_app_context_t *app_ctx)
     for (int i = 0; i < io_num.n_output; i++)
     {
         output_attrs[i].index = i;
-        ret = rknn_query(ctx, RKNN_QUERY_OUTPUT_ATTR, &(output_attrs[i]), sizeof(rknn_tensor_attr));
+        ret = rknn_query(ctx, RKNN_QUERY_NATIVE_NHWC_OUTPUT_ATTR, &(output_attrs[i]), sizeof(rknn_tensor_attr));
         if (ret != RKNN_SUCC)
         {
             printf("rknn_query fail! ret=%d\n", ret);
@@ -89,11 +89,36 @@ int init_yolov8_model(const char *model_path, rknn_app_context_t *app_ctx)
         dump_tensor_attr(&(output_attrs[i]));
     }
 
+    // default input type is int8 (normalize and quantize need compute in outside)
+    // if set uint8, will fuse normalize and quantize to npu
+    input_attrs[0].type = RKNN_TENSOR_UINT8;
+    // default fmt is NHWC,1106 npu only support NHWC in zero copy mode
+    input_attrs[0].fmt = RKNN_TENSOR_NHWC;
+    //printf("input_attrs[0].size_with_stride=%d\n", input_attrs[0].size_with_stride);
+    app_ctx->input_mems[0] = rknn_create_mem(ctx, input_attrs[0].size_with_stride);
+
+    // Set input tensor memory
+    ret = rknn_set_io_mem(ctx, app_ctx->input_mems[0], &input_attrs[0]);
+    if (ret < 0) {
+        printf("input_mems rknn_set_io_mem fail! ret=%d\n", ret);
+        return -1;
+    }
+
+    // Set output tensor memory
+    for (uint32_t i = 0; i < io_num.n_output; ++i) {
+        app_ctx->output_mems[i] = rknn_create_mem(ctx, output_attrs[i].size_with_stride);
+        ret = rknn_set_io_mem(ctx, app_ctx->output_mems[i], &output_attrs[i]);
+        if (ret < 0) {
+            printf("output_mems rknn_set_io_mem fail! ret=%d\n", ret);
+            return -1;
+        }
+    }
+
     // Set to context
     app_ctx->rknn_ctx = ctx;
 
     // TODO
-    if (output_attrs[0].qnt_type == RKNN_TENSOR_QNT_AFFINE_ASYMMETRIC && output_attrs[0].type == RKNN_TENSOR_UINT8)
+    if (output_attrs[0].qnt_type == RKNN_TENSOR_QNT_AFFINE_ASYMMETRIC)
     {
         app_ctx->is_quant = true;
     }
@@ -139,6 +164,16 @@ int release_yolov8_model(rknn_app_context_t *app_ctx)
     {
         free(app_ctx->output_attrs);
         app_ctx->output_attrs = NULL;
+    }
+    for (int i = 0; i < app_ctx->io_num.n_input; i++) {
+        if (app_ctx->input_mems[i] != NULL) {
+            rknn_destroy_mem(app_ctx->rknn_ctx, app_ctx->input_mems[i]);
+        }
+    }
+    for (int i = 0; i < app_ctx->io_num.n_output; i++) {
+        if (app_ctx->output_mems[i] != NULL) {
+            rknn_destroy_mem(app_ctx->rknn_ctx, app_ctx->output_mems[i]);
+        }
     }
     if (app_ctx->rknn_ctx != 0)
     {
