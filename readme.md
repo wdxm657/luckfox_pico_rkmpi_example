@@ -1,6 +1,9 @@
 ## 测评汇总
 https://bbs.eeworld.com.cn/thread-1271012-1-1.html
 
+## RV1126 RK3566
+https://wiki.fanconn.com/docs_rv1126/rv1126_03
+https://docs.radxa.com/
 ## 编译
 + 设置环境变量
     ```
