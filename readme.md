@@ -4,6 +4,9 @@ https://bbs.eeworld.com.cn/thread-1271012-1-1.html
 ## RV1126 RK3566
 https://wiki.fanconn.com/docs_rv1126/rv1126_03
 https://docs.radxa.com/
+
+## 驱动开发
+https://wiki.lckfb.com/zh-hans/tspi-rk3566/project-case/fat-little-cell-phone/device-tree.html
 ## 编译
 + 设置环境变量
     ```
