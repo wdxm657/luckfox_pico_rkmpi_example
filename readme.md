@@ -7,6 +7,8 @@ https://docs.radxa.com/
 
 ## 驱动开发
 https://wiki.lckfb.com/zh-hans/tspi-rk3566/project-case/fat-little-cell-phone/device-tree.html
+https://blog.csdn.net/fengli1995/article/details/138192557
+https://bbs.eeworld.com.cn/thread-1305930-1-1.html
 ## 编译
 + 设置环境变量
     ```

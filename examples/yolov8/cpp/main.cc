@@ -125,7 +125,6 @@ int main(int argc, char **argv)
     // h264_frame
     VENC_STREAM_S stFrame;
     stFrame.pstPack = (VENC_PACK_S *)malloc(sizeof(VENC_PACK_S));
-    RK_U64 H264_PTS = 0;
     RK_U32 H264_TimeRef = 0;
     VIDEO_FRAME_INFO_S stViFrame;
 
