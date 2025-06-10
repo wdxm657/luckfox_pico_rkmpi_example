@@ -9,8 +9,6 @@ if (ENABLE_ASAN)
 	set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 endif ()
 
-set(rknpu_yolov8_file rknpu2/yolov8.cc)
-
 if (TARGET_SOC STREQUAL "rv1106" OR TARGET_SOC STREQUAL "rv1103")
     add_definitions(-DRV1106_1103)
     set(rknpu_yolov8_file rknpu2/yolov8_rv1106_1103.cc)

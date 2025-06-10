@@ -97,7 +97,6 @@ pyzmq==26.4.0
 requests==2.32.3
 requests-oauthlib==2.0.0
 rich==14.0.0
-rknn-toolkit2 @ file:///home/wdxm/code/luck_fox/rknn-toolkit2-v2.3.2-2025-04-09/rknn-toolkit2/packages/x86_64/rknn_toolkit2-2.3.2-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl#sha256=6cb783ddf293ac509f39bf9127acf6a5492bbb67e4b4b4ac33a7c6d2cefb4f3c
 rsa==4.9.1
 ruamel.yaml==0.18.10
 ruamel.yaml.clib==0.2.12

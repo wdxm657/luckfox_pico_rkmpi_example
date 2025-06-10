@@ -2,7 +2,7 @@
 
 set -e
 
-GCC_COMPILER=/home/wdxm/code/luck_fox/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf
+GCC_COMPILER=/home/xh/luckfox-pico/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf
 
 echo "$0 $@"
 while getopts ":t:a:d:b:m:r:j" opt; do
